@@ -77,12 +77,20 @@ def my_graph(selected_date,section):
     df = pd.read_csv('energy_data/'+str(section))
     df['Date'] = df['Datetime'].apply(lambda x: x.split(' ')[0])
     df['Time'] = df['Datetime'].apply(lambda x: x.split(' ')[1])
+    df['Time'] = df['Time'].apply(lambda x: x[0:5]) # removing the milliseconds
     df = df[df['Date'] == selected_date.split(' ')[0]]
 
     data = [
         go.Bar(
             x=df['Time'],
-            y=df[str(section.split('_')[0])+'_MW']
+            y=df[str(section.split('_')[0])+'_MW'],
+            name='Energy Consumption'
+        ),
+        go.Scatter(
+            x=df['Time'],
+            y=[df[str(section.split('_')[0])+'_MW'].mean()]*len(df['Time']),
+            name='Average Energy Consumption',
+            line={'color':'red','dash':'dash'}
         )
     ]
 
@@ -91,6 +99,7 @@ def my_graph(selected_date,section):
         title='Energy consumption for {} region'.format(section.split('_')[0]),
         xaxis={'title':'Time of day'},
         yaxis={'title':'Energy consumption (MW)'},
+        font={'size':14},
         height=750
     )
 
