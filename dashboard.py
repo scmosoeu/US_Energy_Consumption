@@ -2,7 +2,7 @@
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-from dash.dependencies import Input,Output
+from dash.dependencies import Input,Output,State
 
 # PLOTLY IMPORTS
 import plotly.graph_objs as go
@@ -18,8 +18,6 @@ regions = []
 for x in csv_files:
     regions.append(x.split('_')[0]) # List of regions for Dropdown menu
 
-global df
-
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__,external_stylesheets=external_stylesheets)
 app.config['suppress_callback_exceptions'] = True
@@ -33,14 +31,18 @@ app.layout = html.Div([
                 options=[{'label':i,'value':j} for i,j in zip(regions,csv_files)],
                 value=csv_files[0]
             )
-        ],style={'width':'40%','display':'inline-block','paddingRight':'30px'}),
+        ],style={'width':'30%','display':'inline-block','paddingRight':'30px'}),
 
-        html.H4('Select date:',
-            style={'display':'inline-block','lineHeight':'0px'}),
+        html.Div('Select date:',
+            style={
+                'display':'inline-block',
+                'fontWeight':'bold',
+                'fontSize':18
+            }),
 
         html.Div(id='calender',
             style={
-                'width':'40%',
+                'width':'50%',
                 'display':'inline-block',
                 'verticalAlign':'top',
                 'paddingLeft':'10px'
@@ -67,13 +69,14 @@ def date_selector(section):
     )
 
 @app.callback(Output('my-graph','children'),
-             [Input('my-date-picker','value')])
+             [Input('my-date-picker','date')],
+             [State('location','value')])
 
-def my_graph(selected_date):
+def my_graph(selected_date,section):
 
+    df = pd.read_csv('energy_data/'+str(section))
     df['Date'] = df['Datetime'].apply(lambda x: x.split(' ')[0])
     df['Time'] = df['Datetime'].apply(lambda x: x.split(' ')[1])
-
     df = df[df['Date'] == selected_date.split(' ')[0]]
 
     data = [
