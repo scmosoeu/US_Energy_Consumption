@@ -3,11 +3,9 @@
 .info {
   width: 20%;
   display: inline;
-  border-color: blue;
 }
 
 .my-graph {
   width: 80%;
   display: inline;
-  border-color: red;
 }
