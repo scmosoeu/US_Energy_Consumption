@@ -18,77 +18,77 @@ regions = []
 for x in csv_files:
     regions.append(x.split('_')[0]) # List of regions for Dropdown menu
 
-app = dash.Dash()
+global df
+
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+app = dash.Dash(__name__,external_stylesheets=external_stylesheets)
 app.config['suppress_callback_exceptions'] = True
 
 app.layout = html.Div([
     html.Div([
 
-        dcc.Dropdown(
-            id='location',
-            options=[{'label':i,'value':j} for i,j in zip(regions,csv_files)],
-            value=csv_files[0]
-        ),
+        html.Div([
+            dcc.Dropdown(
+                id='location',
+                options=[{'label':i,'value':j} for i,j in zip(regions,csv_files)],
+                value=csv_files[0]
+            )
+        ],style={'width':'40%','display':'inline-block','paddingRight':'30px'}),
 
-        html.Div(id='calender')
+        html.H4('Select date:',
+            style={'display':'inline-block','lineHeight':'0px'}),
 
-    ],className='info'),
+        html.Div(id='calender',
+            style={
+                'width':'40%',
+                'display':'inline-block',
+                'verticalAlign':'top',
+                'paddingLeft':'10px'
+            }
+        )
+    ]),
 
-    html.Div(id='my-graph',className='my-graph')
+    html.Div(id='my-graph',style={'paddingTop':'30px'})
 ])
 
 @app.callback(Output('calender','children'),
              [Input('location','value')])
 
 def date_selector(section):
-    df = pd.read_csv('energy_data/'+str(section))
-    df['Datetime'] = pd.to_datetime(df['Datetime'], format='%Y-%m-%d %H:%M:%S')
 
+    df = pd.read_csv('energy_data/'+str(section))
+    df['Date'] = df['Datetime'].apply(lambda x: x.split(' ')[0])
     return dcc.DatePickerSingle(
         id='my-date-picker',
-        min_date_allowed=df['Datetime'][0],
-        max_date_allowed=df['Datetime'][-1],
-        date=df['Datetime'][0]
+        display_format='D/M/Y',
+        min_date_allowed=df['Date'].iloc[0],
+        max_date_allowed=df['Date'].iloc[-1],
+        date=df['Date'].iloc[0]
     )
 
 @app.callback(Output('my-graph','children'),
-             [Input('location','value'),
-              Input('my-date-picker','date')])
+             [Input('my-date-picker','value')])
 
-def my_graph(section,selected_date):
-    df = pd.read_csv('/energy_data/'+str(section))
-    print(df)
+def my_graph(selected_date):
+
+    df['Date'] = df['Datetime'].apply(lambda x: x.split(' ')[0])
+    df['Time'] = df['Datetime'].apply(lambda x: x.split(' ')[1])
+
+    df = df[df['Date'] == selected_date.split(' ')[0]]
+
     data = [
         go.Bar(
-            x=df[:,2],
-            y=df[:,1]
+            x=df['Time'],
+            y=df[str(section.split('_')[0])+'_MW']
         )
     ]
 
-    updatemenus = list([
-        dict(
-            buttons=list([
-                dict(
-                    args=['type','Bar'],
-                    label='Bar Chart',
-                    method='restyle'
-                ),
-                dict(
-                    args=['type','Line'],
-                    label='Line Chart',
-                    method='restyle'
-                )
-            ]),
-            showactive=True
-        )
-    ])
-
     layout = go.Layout(
+        hovermode='closest',
         title='Energy consumption for {} region'.format(section.split('_')[0]),
         xaxis={'title':'Time of day'},
-        yaxis={'title':'Energy Consumption'},
-        hovermode='closest',
-        updatemenus=updatemenus
+        yaxis={'title':'Energy consumption (MW)'},
+        height=750
     )
 
     return dcc.Graph(
